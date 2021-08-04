@@ -1,0 +1,40 @@
+<html>
+<head>
+  <style>
+      html, body {
+          margin: 0;
+          padding: 0;
+      }
+      .controls {
+          padding: 4px;
+          font-size: 12px;
+          position: fixed;
+          top: 0;
+          z-index: 100;
+          background: white;
+      }
+      .grid {
+          position: relative;
+          display: grid;
+          grid-template-columns: repeat( auto-fill, minmax( var(--cellwidth, 250px), 1fr) );
+          grid-gap: 10px;
+          margin: 2px;
+          margin-top: 25px;
+      }
+      canvas {
+          object-fit: contain;
+          width: 100% !important;
+          height: auto  !important;
+          max-height: 100vh;
+          max-width: calc(100vw - 100px);
+      }
+  </style>
+</head>
+<body>
+
+<div class="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/p5@1.3.1/lib/p5.js"></script>
+<script type="text/javascript" src="scripts/ide/app-samplegen.tsx"></script>
+</body>
+</html>

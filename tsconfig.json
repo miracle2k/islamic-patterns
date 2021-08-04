@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": true,
+    "target": "es5",
+    "jsx": "react",
+    "lib": [
+      "es2019",
+      "dom"
+    ],
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["./scripts/**/*"]
+}
