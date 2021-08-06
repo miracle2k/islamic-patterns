@@ -62,17 +62,61 @@ export function makePatternFromConfig(config: PatternConfig): Pattern {
         [2, 6, 1, 0, 0, 2]
       ]
     }
+    else if (config.name == 'template-square' && config.mode == "+2") {
+      interlacing = config.interlacing == 'default';
+      interlacingConfig = [
+        [15, 14, 0, 0, 5, 5, 0, false],
+        [15, 14, 0, 0, 3, 3, 0, false],
+
+        [3, 2, 0, 0, 3, 3, 0, false],
+        [3, 2, 0, 0, 5, 5, 0, false],
+
+        [7, 6, 0, 0, 3, 3, 0, false],
+        [7, 6, 0, 0, 5, 5, 0, false],
+
+        [11, 10, 0, 0, 3, 3, 0, false],
+        [11, 10, 0, 0, 5, 5, 0, false],
+
+        [0, 8, 0, 1, 0, 2, 0, true],
+        [4, 12, 1, 0, 0, 2, 0, true]
+      ]
+    }
     else if (config.name == 'template-hexagon' && config.mode == "+1") {
       interlacing = config.interlacing == 'default';
       interlacingConfig = [
-          [7, 1, 0, -1, 0, 2],
+        [7, 1, 0, -1, 0, 2],
 
-          // Those two are a 4-intersection pair (others have this as well). Only one of
-          // them should be active.
-          //[6, 0, -1, 0, 2, 0, 1],
-          [5, 11, -1, 0, 0, 2, 1],
+        // Those two are a 4-intersection pair (others have this as well). Only one of
+        // them should be active.
+        //[6, 0, -1, 0, 2, 0, 1],
+        [5, 11, -1, 0, 0, 2, 1],
 
-          [3, 9, -1, 0, 0, 2, -1],
+        [3, 9, -1, 0, 0, 2, -1],
+      ]
+    }
+    else if (config.name == 'template-hexagon' && config.mode == "+2") {
+      interlacing = config.interlacing == 'default';
+      interlacingConfig = [
+        // [11, 10, 0, 0, 5, 5, 0, false],
+        // [11, 10, 0, 0, 3, 3, 0, false],
+        // [4, 16, 0, 1, 2, 0],
+
+        [21, 20,     0, 0,      2, 3,    0, false],
+        [21, 20,     0, 0,      0, 5,    0, false],
+        [17, 16,     0, 0,      2, 3,    0, false],
+        [17, 16,     0, 0,      0, 5,    0, false],
+        [13, 12,     0, 0,      2, 3,    0, false],
+        [13, 12,     0, 0,      0, 5,    0, false],
+        [9, 8,     0, 0,      2, 3,    0, false],
+        [9, 8,     0, 0,      0, 5,    0, false],
+        [5, 4,     0, 0,      2, 3,    0, false],
+        [5, 4,     0, 0,      0, 5,    0, false],
+        [1, 0,     0, 0,      2, 3,    0, false],
+        [1, 0,     0, 0,      0, 5,    0, false],
+
+        [10, 22, -1, 0, 0, 2, 1],
+        [6, 18, -1, 0, 0, 2, -1],
+        [2, 14, 0, 1, 0, 2, 0],
       ]
     }
     if (interlacing) {

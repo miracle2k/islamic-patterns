@@ -322,22 +322,51 @@ export function intersectLine(la: SimpleLine, lb: SimpleLine): SimplePoint {
   let pa = la[0];
   let pb = lb[0];
 
-
+  let a0X = la[0][0];
+  let a0Y = la[0][1];
+  let a1X = la[1][0];
+  let a1Y = la[1][1];
+  let b0X = lb[0][0];
+  let b0Y = lb[0][1];
+  let b1X = lb[1][0];
+  let b1Y = lb[1][1];
+  
   if (a == undefined) {
     if (b == undefined) { return undefined; }
     // one of them is vertical line, while the other is not, so they will intersect
-    let y1 = -b.slope *  (pb[0] - pa[0]) + pb[1]; // -slope * x + y
+    let y1 = ((b0Y - b1Y) * (b0X - a0X) + b0Y * (b1X - b0X)) / (b1X - b0X);
     return [pa[0], y1];
 
   } else {
     // diff slope, or b slope is vertical line
     if (b == undefined) {
-      let y1 = -a.slope *  (pa[0] - pb[0]) + pa[1];
+      let y1 = ((a0Y - a1Y) * (a0X - b0X) + a0Y * (a1X - a0X)) / (a1X - a0X);
       return [pb[0], y1];
 
     } else if (b.slope != a.slope) {
-      let px = (a.slope * pa[0] - b.slope * pb[0] + pb[1] - pa[1]) / (a.slope - b.slope);
-      let py = a.slope * ( px - pa[0] ) + pa[1];
+      // px and py equations are calculated using SymPy by substituting slope equations in terms of original points and then converting to common denominator format
+      let px =
+          (-a0X * (a0Y - a1Y) * (b0X - b1X) +
+              b0X * (a0X - a1X) * (b0Y - b1Y) -
+              (a0X - a1X) * (-a0Y + b0Y) * (b0X - b1X)) /
+          ((a0X - a1X) * (b0Y - b1Y) + (-a0Y + a1Y) * (b0X - b1X));
+      let py =
+          (a0X * a1Y * b0Y -
+              a0X * a1Y * b1Y -
+              a0Y * a1X * b0Y +
+              a0Y * a1X * b1Y -
+              a0Y * b0X * b1Y +
+              a0Y * b0Y * b1X +
+              a1Y * b0X * b1Y -
+              a1Y * b0Y * b1X) /
+          (a0X * b0Y -
+              a0X * b1Y -
+              a0Y * b0X +
+              a0Y * b1X -
+              a1X * b0Y +
+              a1X * b1Y +
+              a1Y * b0X -
+              a1Y * b1X);
       return [px, py];
 
     } else {

@@ -133,7 +133,7 @@ function renderWithP5(
   ////////////////////////////// THE SHAPES
 
   // Figure out which shapes to draw
-  let shapes = pattern.shapes;
+  let shapes = [...pattern.shapes, ...(pattern.externalShapes ?? [])];
   if (pattern.shapeSets) {
     const shapeSetIndex = mapValueInt(
         config.pattern.shapeSet, 0, 1, 0, pattern.shapeSets.length-1

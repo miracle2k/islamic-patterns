@@ -1,22 +1,34 @@
-import {Pattern, SimpleGroup} from "../types";
+import {Pattern, SimpleGroup, SimplePoint} from "../types";
 import {makeLinesFromShapes, TileEdges100Square} from "./utils";
+import {rotatePoints} from "../rough/hachure";
+import {cloneGroup} from "../utils/math";
 
 export function makeCapellaPalatina(angle?: number): Pattern {
   // From 20 to 45, with the proper one being 35.3553390503
   const B = 20 + angle * 25;
   const A = 100 - B;
 
+  const e: SimplePoint = [50, 0];
+  const f: SimplePoint = [A, 14.64466];
+  const g: SimplePoint = [85.355339, 14.64466];
+  const h: SimplePoint = [85.355339, B];
+  const i: SimplePoint = [100, 50];
+  const j: SimplePoint = [85.355339, A];
+  const k: SimplePoint = [85.355339, 85.355339];
+  const l: SimplePoint = [A, 85.355339];
+  const m: SimplePoint = [50, 100];
+
   const shapes: SimpleGroup[] = [
     [
-      [50, 0],
-      [A, 14.64466],
-      [85.355339, 14.64466],
-      [85.355339, B],
-      [100, 50],
-      [85.355339, A],
-      [85.355339, 85.355339],
-      [A, 85.355339],
-      [50, 100],
+      e,
+      f,
+      g,
+      h,
+      i,
+      j,
+      k,
+      l,
+      m,
       [B, 85.355339],
       [14.644660, 85.3553],
       [14.64466, A],
@@ -26,6 +38,7 @@ export function makeCapellaPalatina(angle?: number): Pattern {
       [B, 14.64466]
     ],
   ];
+
   return {
     label: {
       title: 'Capella Palatina',
@@ -39,6 +52,14 @@ export function makeCapellaPalatina(angle?: number): Pattern {
     interlacingConfig: [
       [0, 8, 0, -1, 3, 5],
       [4, 12, 1, 0, 3, 5]
-    ]
+    ],
+    // externalShapes: [
+    //   [
+    //       ...[i, j, k, l, m],
+    //     ...rotatePoints(cloneGroup([i, j, k, l, m]), [100, 100], 90),
+    //     ...rotatePoints(cloneGroup([i, j, k, l, m]), [100, 100], 180),
+    //     ...rotatePoints(cloneGroup([i, j, k, l, m]), [100, 100], 270),
+    //   ]
+    // ]
   }
 }

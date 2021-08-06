@@ -30,7 +30,7 @@ export type Pattern = {
   shapes: SimpleGroup[],
   shapeSets?: number[][],
   edgeSet?: any,
-  externalShapes?: any[]
+  externalShapes?: SimpleGroup[]
 }
 
 enum InterlacingMode {

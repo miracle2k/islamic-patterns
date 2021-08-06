@@ -135,6 +135,11 @@ export function makeCordoba(angle: number): Pattern {
     tileSize: [100, 100],
     tileEdges: TileEdges100Square,
     shapes,
-    lines
+    lines,
+    // only works well within a certain angle range
+    // interlacingConfig: [
+    //   [9, 8, 0, 0, 5, 0, 0, false],
+    //   [8, 9, 0, 0, 2, 3, 0, false]
+    // ]
   }
 }

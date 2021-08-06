@@ -218,7 +218,7 @@ function straightHachureLines(points: SimplePoint[], hachureGap: number): Simple
   return lines;
 }
 
-export function rotatePoints(points: SimplePoint[], center: SimplePoint, degrees: number): void {
+export function rotatePoints(points: SimplePoint[], center: SimplePoint, degrees: number): SimplePoint[] {
   if (points && points.length) {
     const [cx, cy] = center;
     const angle = (Math.PI / 180) * degrees;
@@ -230,6 +230,7 @@ export function rotatePoints(points: SimplePoint[], center: SimplePoint, degrees
       p[1] = ((x - cx) * sin) + ((y - cy) * cos) + cy;
     });
   }
+  return points;
 }
 
 export function rotateLines(lines: SimpleLine[], center: SimplePoint, degrees: number): void {

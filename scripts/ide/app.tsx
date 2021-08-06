@@ -33,7 +33,7 @@ export function App() {
   }, [canvases])
 
   // Load saved canvases, or create an initial canvas
-  const loadfromLocalStorage = false;
+  const loadfromLocalStorage = true;
 
   useEffect(() => {
     const canvases: CanvasDef[] = storage ? JSON.parse(storage) : null;

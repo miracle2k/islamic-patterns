@@ -73,6 +73,8 @@ export function makeAlSamad(angle?: number): Pattern {
     tilingMode: 'hex2',
     tileSize: getFormSize(template.lines),
     tileEdges: template.lines,
+
+    // This one does not interlace well, because at one point three bands overlap
     // interlacingConfig: [
     //     // targetLine, changeLine, mx, my, targetPointFirst, changePointSecond, doExtraY, doReverse
     //     [2, 25, 0, 0, 5, 0, 0, false],

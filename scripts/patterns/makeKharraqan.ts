@@ -131,7 +131,31 @@ export function makeKharraqan(angle: number): Pattern {
     tileEdges: TileEdges100Square,
     shapes,
     shapeSets: [[0, 2], [1, 3]],
-    lines
+    lines,
+    interlacingConfig: [
+      [6, 5, 0, 0, 0, 2],
+
+      [27, 11, 0, 0, 5, 3, 0, false],
+      [27, 11, 0, 0, 3, 5, 0, false],
+
+      [8, 29, 0, -1, 2, 3, 0, false],
+      [29, 8, 0, 1,  5, 0, 0, false],
+
+      [17, 0, 1, 1, 5, 0, 0, false],
+      [17, 0, 1, 1, 3, 2, 0, false],
+
+      [21, 22, 0, 0, 5, 0, 0, false],
+      [21, 22, 0, 0, 3, 2, 0, false],
+
+      [3, 19, 0, 0, 0, 5, 0, false],
+      [3, 19, 0, 0, 2, 3, 0, false],
+
+      [13, 25, 1, 0, 3, 5, 0, false],
+      [25, 13, -1, 0, 3, 5, 0, false],
+
+      [31, 15, 0, 0, 3, 5, 0, false],
+      [31, 15, 0, 0, 5, 3, 0, false],
+    ]
   };
 }
 

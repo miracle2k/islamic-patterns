@@ -82,7 +82,7 @@ export function getRandomPattern(): TemplateNames {
 
 
 const colorSelection = [
-  0.02, 'beigeOnBlack',
+  0.04, 'beigeOnBlack',
   0.02, 'yellowOnBlack',
   0.02, 'pinkOnBlack',
 
@@ -109,28 +109,20 @@ export function makeConfig(seed?: number): Config {
 
   const fills = [];
   for (let idx=0; idx < randpick([0.15, 3, 0.3, 2, 1]); idx++) {
-    let fillChoices;
-    if (roughMode == 'on') {
-      fillChoices = [
-        // 0.1, 'crosses',
-        // 0.1, 'waves',
-        // TODO: We want to increase the chance of "none" if idx > 0. therefore, we have to support relative chances
-        0.25, 'dots',
-        0.3, 'lines',
-        0.15, 'infinite',
-        0.05, 'solid',
-        0.05, 'none'];
-    } else {
-      fillChoices = [
-        0.1, 'crosses',
-        0.1, 'waves',
-        0.25, 'dots',
-        0.3, 'lines',
-        0.15, 'infinite',
-        0.05, 'solid',
-        0.05, 'none']
+    let fillChoices = [
+      3, 'dots',
+      3, 'lines',
+      2, 'infinite',
+      1, 'solid',
+      idx == 0 ? 0.1 : 0.3 * idx, 'none',
+    ];
+    if (roughMode != 'on') {
+      fillChoices.push.apply(fillChoices, [
+        2, 'crosses',
+        2, 'waves',
+      ]);
     }
-    const patternKind = randpick(fillChoices) as FillPattern;
+    const patternKind = percpick(fillChoices) as FillPattern;
 
     let patternScale, patternGap;
     if (patternKind == 'dots') {
@@ -342,7 +334,7 @@ export function makeConfig(seed?: number): Config {
   ////////////////////////
   // Final Assembly
 
-  const colors = ColorSchemes[randpick(colorSelection)];
+  const colors = ColorSchemes[percpick(colorSelection)];
 
   let desiredNumber = randpick([
     0.7, 6.5,
