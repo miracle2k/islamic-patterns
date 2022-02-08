@@ -59,7 +59,7 @@ export default function Controls(props: {
 
   const toggleRough = useCallback(() => {
     const current = props.config.rough?.mode ?? 'off';
-    const next: RoughMode = current == 'off' ? 'on' : current == 'on' ? 'split' : 'off';
+    const next: RoughMode = current == 'off' ? 'on' : 'off';
     props.onChangeConfig(
         {...props.config, rough: {...props.config.rough, mode: next}}
     );

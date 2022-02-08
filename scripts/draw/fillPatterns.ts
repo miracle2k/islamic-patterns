@@ -104,13 +104,11 @@ export function getCrossesPattern(p5, cache: any, scheme: ColorScheme, gap: numb
  * The job: Return something with a line width of 1px, scaled up by SAFETY_ZOOM.
  * If we scale it down by SAFETY_ZOOM, it should draw a 1px line.
  */
-export function getLinePattern(p5, cache, scheme: ColorScheme, gap: number) {
-  // TODO: make the lines dashable
-
+export function getLinePattern(p5, cache, scheme: ColorScheme, gap: number, dashLen: number = 0) {
   const weight = 1;
   const width = gap + weight;
 
-  const pattern = initPattern(p5, cache, scheme, width, width);
+  const pattern = initPattern(p5, cache, scheme, width, width + dashLen);
   pattern.stroke(scheme.foreground);
   pattern.strokeWeight(weight)
   pattern.line(width/2, 0, width/2, width);
@@ -119,9 +117,12 @@ export function getLinePattern(p5, cache, scheme: ColorScheme, gap: number) {
 }
 
 
-export function getCrossHatchPattern(p5, cache, scheme: ColorScheme, gap) {
-  // TODO: make the lines dashable
+export function getDashedLinePattern(p5, cache, scheme: ColorScheme, gap: number) {
+  return getLinePattern(p5, cache, scheme, gap, 3)
+}
 
+
+export function getCrossHatchPattern(p5, cache, scheme: ColorScheme, gap) {
   const weight = 1;
   const size = gap+weight;
 

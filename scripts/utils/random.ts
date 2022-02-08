@@ -1,33 +1,39 @@
 export class Random {
-  private seed: number|undefined;
+  public seed: number|undefined;
 
-  constructor(seed?: number) {
+  constructor(seed) {
     this.seed = seed;
   }
 
   next(): number {
-    if (this.seed) {
-      return ((2 ** 31 - 1) & (this.seed = Math.imul(48271, this.seed))) / 2 ** 31;
-    } else {
-      return Math.random();
-    }
+    return ((2 ** 31 - 1) & (this.seed = Math.imul(48271, this.seed))) / 2 ** 31;
   }
 }
-
-export type Randomizer = () => number;
 
 
 let randomizer: Random;
 
-export function initRandomizer(seed?: number) {
+
+export function getSeed() {
+  return randomizer.seed;
+}
+
+const seedStack = [];
+export function pushSeed(seed: number) {
+  seedStack.push(getSeed());
+  randomizer.seed = seed;
+}
+export function popSeed() {
+  randomizer.seed = seedStack[seedStack.length-1];
+  seedStack.splice(seedStack.length-1, 1)
+}
+
+
+export function initRandomizer(seed: number) {
   randomizer = new Random(seed);
-  return randomizer;
 }
 
 export function rand() {
-  if (!randomizer) {
-    initRandomizer();
-  }
   return randomizer.next();
 }
 
@@ -49,6 +55,10 @@ export function percpick(opts: any[]) {
   let prev = 0;
   for (let i = 0; i < opts.length; i = i + 2) {
     const thisPart = (opts[i] / sum);
+
+    // For debugging:
+    // const thisPart = opts[i] == 0 ? 0 : 1/(opts.length/2);
+
     const t = thisPart + prev;
     if (r < t) {
       return opts[i + 1];
@@ -57,17 +67,6 @@ export function percpick(opts: any[]) {
   }
 }
 
-export function randpick(opts: any[]) {
-  // TODO: Validate sum is < 100%
-
-  const r = rand();
-  let prev = 0;
-  for (let i = 0; i <= opts.length - 2; i = i + 2) {
-    const t = opts[i] + prev;
-    if (r < t) {
-      return opts[i + 1];
-    }
-    prev += opts[i];
-  }
-  return opts[opts.length - 1];
+export function randomSeed() {
+  return  Math.random() * 9999999999;
 }

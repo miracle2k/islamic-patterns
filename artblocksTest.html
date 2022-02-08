@@ -1,0 +1,30 @@
+<html>
+<head>
+  <style>
+      html, body {
+          margin: 0;
+          padding: 0;
+      }
+      canvas {
+
+      }
+  </style>
+</head>
+<body>
+
+<div class="app"></div>
+
+<script src="https://api.artblocks.io/p5.js"></script>
+
+<script>
+  console.log(window.location.search?.slice(1) || '0xf2972adb917649a9b11e2fd149506ae649273aecfc11f1e27c966d6dc19755ee')
+  window.DEBUG = true;
+  window.tokenData = {
+    tokenId: 0,
+    hash: window.location.search?.slice(1) || '0xf2972adb917649a9b11e2fd149506ae649273aecfc11f1e27c966d6dc19755ee'
+  }
+</script>
+
+<script type="text/javascript" src="scripts/artblocksEntry.ts"></script>
+</body>
+</html>

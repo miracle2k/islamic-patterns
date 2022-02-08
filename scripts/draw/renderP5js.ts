@@ -1,128 +1,36 @@
 ﻿import {
-  ColorScheme,
-  Config,
-  FillConfig,
-  FillPattern,
-  Pattern, RoughMode,
-  SimpleGroup,
-  SimplePoint,
+  Config, FillConfig,
+  FillPatternOpts,
+  FillPatternStructure,
+  isFillPatternDefinition,
+  Pattern,
   TesselationInfo
 } from "../types";
-import {
-  boundingBox,
-  mapValueInt,
-  pointsOfRect,
-  polygonIntersectsPoints,
-  sizeOfBounds
-} from "../utils/math";
 import {runTesselationLoop} from "./tesselation";
-import {
-  getCirclePattern,
-  getCrossesPattern,
-  getCrossHatchPattern,
-  getHeartPattern,
-  getLinePattern,
-  getWavesPattern,
-  SAFETY_ZOOM
-} from "./fillPatterns";
 import {drawShape} from "./drawShape";
-import {initRandomizer, rand, randint} from "../utils/random";
+import {initRandomizer} from "../utils/random";
 import {drawLine} from "./drawLine";
+import {polygon} from "./helpers";
+import {debug} from "../utils/debug";
+import {mapValueInt} from "../utils/math";
 
 
-// TODO: combine infinite with more cross lines, other patterns
+function renderTile(opts: {
+    pattern: Pattern,
+    buffer,
+    x: number, y: number,
+    scale: number,
+    config: Config,
+    cache: any,
+    info: TesselationInfo,
+    p5,
+    fillPattern: FillPatternStructure
+  }) {
+  const {buffer, pattern, x, y, scale, config, cache, info, p5, fillPattern} = opts;
 
-
-// Get a pattern, with a cache.
-export function getPattern(cache: any, p5, kind: string, colors: ColorScheme, gap?: number) {
-  if (!cache.patterns) {
-    cache.patterns = {};
-  }
-  if (cache.patterns[kind]) {
-    return cache.patterns[kind];
-  }
-
-  let getPatternFunc = ({
-    'lines': getLinePattern,
-    'dots': getCirclePattern,
-    'hearts': getHeartPattern,
-    'waves': getWavesPattern,
-    'crosses': getCrossesPattern,
-    'crossHatch': getCrossHatchPattern,
-  } as {[K in FillPattern as any]: any})[kind];
-
-  if (!getPatternFunc) {
-    return null;
-  }
-  const graphics = getPatternFunc(p5, cache, colors, gap).elt;
-  let pattern = p5.drawingContext.createPattern(graphics, 'repeat');
-
-  cache.patterns[kind] = pattern;
-
-  return pattern;
-}
-
-
-/**
- * Return a transform matrix to bring the pattern to the desired scale.
- * Accounts for the size of the shape where you want to apply the pattern.
- * Needs to know the globally applied scale transform as well.
- */
-export function getPatternTransform(
-  shapeSize: SimplePoint,
-  globalScale:  number,
-  desiredScale: number|undefined,
-  gapScale?: number
-) {
-  // Scale down from what every pattern is scaled up
-  const scaleToUse = 1/SAFETY_ZOOM
-    // Not sure why this required
-      /   2
-    // The scale the user desires
-      * desiredScale
-    // Any applied margin (which is anotehr global scale making the the shape smaller)
-      * (1/gapScale);
-
-  const mat = new DOMMatrix();
-  return mat.scale(scaleToUse)
-}
-
-
-/**
- * Assuming a polygon centered at center and to be drawn at start, scale
- * it while maintaining the center.
- */
-export function rescalePattern(p5, scale, start, center) {
-  const rscale = 1 - scale;
-  p5.translate(
-      start[0] * (rscale),
-      start[1] * (rscale),
-  );
-  p5.translate(
-      center[0],
-      center[1],
-  );
-  p5.scale(scale);
-  p5.translate(
-      -center[0],
-      -center[1],
-  );
-}
-
-
-function renderWithP5(
-  pattern: Pattern,
-  p5,
-  x: number, y: number,
-  scale: number,
-  config: Config,
-  cache: any,
-  info: TesselationInfo
-) {
-  p5.push();
-  p5.translate(x, y);
-  p5.scale(scale);
-
+  buffer.push();
+  buffer.translate(x, y);
+  buffer.scale(scale);
 
   // Can be a kind of 3d glow kind of effect, or blurry if played right
   // p5.drawingContext.shadowOffsetX = 1;
@@ -132,34 +40,43 @@ function renderWithP5(
 
   ////////////////////////////// THE SHAPES
 
-  // Figure out which shapes to draw
-  let shapes = [...pattern.shapes, ...(pattern.externalShapes ?? [])];
-  if (pattern.shapeSets) {
-    const shapeSetIndex = mapValueInt(
-        config.pattern.shapeSet, 0, 1, 0, pattern.shapeSets.length-1
-    );
-    const set = pattern.shapeSets[shapeSetIndex];
-    shapes = set.map(v => shapes[v]);
-  }
+  // If there is a fill pattern, apply it.
+  if (fillPattern && config.fills.length) {
+    let shapes = [...pattern.shapes, ...(pattern.externalShapes ?? [])];
 
-  // Figure out which fill to use
-  let fillIdx;
-  if (config.fillLogic == 'random') {
-    fillIdx = randint(0, config.fills.length-1);
+    // Which row are we in?
+    const rowIdx = Math.abs(info.y) % fillPattern.length;
+    const rowDef = fillPattern[rowIdx];
+
+    // Which column are we in?
+    const colIdx = Math.abs(info.x) % rowDef.length;
+    let patternDef = rowDef[colIdx];
+
+    // true is a special value meaning all
+    const allShapeIdxes = Array.from(Array(shapes.length).keys());
+    let shapesToFill: number[] = patternDef === true ? allShapeIdxes : patternDef;
+
+    allShapeIdxes.forEach(shapeIdx => {
+      let fillConfig: FillConfig;
+      if (shapesToFill.indexOf(shapeIdx) > -1) {
+        fillConfig = config.fills[0];
+      }
+      else if (config.fills.length > 1) {
+        fillConfig = config.fills[1];
+      }
+      else {
+        return;
+      }
+
+
+      let shape = shapes[shapeIdx];
+
+      // Cut off a random part of the shape? Kind of looks interesting.
+      //shape = [...shape.slice(0, shape.length / 2 + 1)]
+
+      drawShape(buffer, config, pattern, cache, fillConfig, config.rough, shape, scale, info, p5);
+    });
   }
-  else if (config.fillLogic == 'cols') {
-    fillIdx = info.x;
-  }
-  else if (config.fillLogic == 'rows') {
-    fillIdx = info.y;
-  }
-  else if (config.fillLogic == 'diag') {
-    fillIdx = info.y + info.x % 2;
-  }
-  const fillConfig = config.fills[Math.abs(fillIdx) % config.fills.length];
-  shapes.forEach(shape => {
-    drawShape(p5, config, pattern, cache, fillConfig, config.rough, shape, scale, info);
-  })
 
   ////////////////////////////// THE LINES
 
@@ -167,15 +84,17 @@ function renderWithP5(
   //p5.strokeCap(p5.PROJECT);
 
   // Fill all the expanded line shapes with the bg color; this is because some
-  // of the shape fills are a bit too big, going inside the expanded line fill.
+  // of the shape fills are a bit too big, going inside the expanded line fill,
+  // usually due to issues with polygon offsetting. Unfortunately this means
+  // that in some cases say "dots" appear cut off.
   pattern.lines.forEach((line, idx) => {
     const expandedLine = pattern.expandedLines[idx];
     if (expandedLine) {
-      p5.push();
-      p5.noStroke();
-      p5.fill(config.colors.background);
-      polygon(p5, expandedLine);
-      p5.pop();
+      buffer.push();
+      buffer.noStroke();
+      buffer.fill(config.colors.background);
+      polygon(buffer, expandedLine);
+      buffer.pop();
     }
   });
 
@@ -192,75 +111,209 @@ function renderWithP5(
     const expandedLine = pattern.expandedLines[idx];
 
     if (expandedLine) {
-      if (config.expandedLineFill?.patternKind == 'none') {}
+      // pattern - not in use now
+      // if (config.expandedLineFill?.patternKind == 'none') {}
+      //
+      // else if (config.expandedLineFill?.patternKind == 'solid') {
+      //   buffer.fill(config.colors.foreground);
+      //   buffer.noStroke();
+      //
+      //   polygon(buffer, expandedLine);
+      // }
 
-      else if (config.expandedLineFill?.patternKind == 'solid') {
-        p5.fill(config.colors.foreground);
-        p5.noStroke();
-
-        polygon(p5, expandedLine);
-      }
-
-      // pattern
-      else if (config.expandedLineFill?.patternKind) {
-        const shapeSize = sizeOfBounds(boundingBox(pattern.expandedLines[0]));
-        let p = getPattern(cache, p5, config.expandedLineFill.patternKind, config.colors, 1);
-        p.setTransform(
-            getPatternTransform(shapeSize, scale, 1).rotate(45)
-        )
-
-        p5.fill("black");
-        p5.drawingContext.fillStyle = p;
-        p5.noStroke();
-        polygon(p5, expandedLine);
-        p5.drawingContext.fillStyle = null;
-      }
+      // else if (config.expandedLineFill?.patternKind) {
+      //   const shapeSize = sizeOfBounds(boundingBox(pattern.expandedLines[0]));
+      //   let p = getPattern(cache, buffer, config.expandedLineFill.patternKind, config.colors, 1);
+      //   p.setTransform(
+      //       getPatternTransform(shapeSize, scale, 1).rotate(45)
+      //   )
+      //
+      //   buffer.fill("black");
+      //   buffer.drawingContext.fillStyle = p;
+      //   buffer.noStroke();
+      //   polygon(buffer, expandedLine);
+      //   buffer.drawingContext.fillStyle = null;
+      // }
     }
 
     // Centerline
     if (config.centerLine) {
       if (config.expandedLineRightStroke?.show) {
-        drawLine(p5, [expandedLine[4], expandedLine[1]], config.centerLine, config.colors, config.rough);
+        drawLine(buffer, [expandedLine[4], expandedLine[1]], config.centerLine, config.colors, config.rough);
       }
       else {
-        drawLine(p5, [line[0], line[1]], config.centerLine, config.colors, config.rough);
+        drawLine(buffer, [line[0], line[1]], config.centerLine, config.colors, config.rough);
       }
     }
 
     // Expanded line stroke
     if (expandedLine && config.expandedLineLeftStroke) {
-      drawLine(p5, [expandedLine[5], expandedLine[0]], config.expandedLineLeftStroke, config.colors, config.rough);
+      drawLine(buffer, [expandedLine[5], expandedLine[0]], config.expandedLineLeftStroke, config.colors, config.rough);
     }
     if (expandedLine && config.expandedLineRightStroke) {
-      drawLine(p5, [expandedLine[2], expandedLine[3]], config.expandedLineRightStroke, config.colors, config.rough);
+      drawLine(buffer, [expandedLine[2], expandedLine[3]], config.expandedLineRightStroke, config.colors, config.rough);
     }
   })
 
-  /////////////////////////////////// TILES
+  buffer.pop();
+}
 
 
-  if (config.drawTiles) {
-    p5.strokeWeight(0.8);
-    p5.stroke(config.colors.overlay);
-    p5.noFill();
-    p5.drawingContext.lineDashOffset = 4 * 3;
-    p5.drawingContext.setLineDash([1, 2]);
-    pattern.tileEdges?.forEach(tileEdge => {
-      p5.line(...tileEdge[0], ...tileEdge[1])
-    })
+/**
+ * Draw the full pattern on buffers.
+ *
+ * This attempts a performance optimization, where you can pass multiple canvases and a zoom factor for each.
+ * It will assume that you feel zoom into exactly the center; while all canvases have the same size, the zoomed
+ * ones can be used to draw the center in a bette quality; to draw a zoomed out version, you will need to
+ * draw all the buffers, with the inner ones scaled down, as each tile is still only drawn a single time, one
+ * one of the canvases.
+ *
+ * Passing just a single buffer with zoom-level = 1 essentially disables this mode. In that case, zooming
+ * in while either be somewhat pixelated, or, you'd pass in a very big canvas buffer from the beginning, to
+ * account for the amount that you want to scale.
+ */
+function drawPattern(
+    buffers: [number, any][],
+    opts: {
+      pattern: Pattern,
+      p5,
+      config: Config,
+      cache: any,
+    }
+) {
+  const {config, pattern, cache, p5} = opts;
+
+  // Figure out which fill pattern to use
+  let fillPattern: FillPatternStructure|undefined;
+  let fillPatternOpts: FillPatternOpts = {};
+
+  const pIndex = mapValueInt(
+      config.pattern.fillPatternIdx ?? 0,
+      0, 1, -1, (pattern?.fillPatterns?.length ?? 0) -1
+  );
+
+  if (pIndex == -1) {
+    // ALL
+    fillPattern = [[true]]
+  } else {
+    let def = pattern?.fillPatterns[pIndex];
+    fillPattern = isFillPatternDefinition(def) ? def : def[0];
+    fillPatternOpts = !isFillPatternDefinition(def) ? def[1] : {};
   }
 
-  p5.pop();
+  // if (window.DEBUG) {
+  //   debug(`${pIndex + 1} of ${pattern?.fillPatterns?.length ?? 0}`);
+  // }
+
+  let cachedTile;
+
+  // All buffers shall have the same size
+  const fullWidth = buffers[0][1].width;
+  const fullHeight = buffers[0][1].height;
+
+  runTesselationLoop(
+      {
+        width: fullWidth,
+        height: fullHeight,
+        desiredNumber: (config.bufferedNumber ?? 11),
+        pattern,
+        fillPatternOpts
+      }, (x, y, scale, info) => {
+        // const rectToBeDrawn: SimpleGroup = [
+        //   [x, y].map(x => Math.max(x, 0)) as SimplePoint,
+        //   [pattern.tileSize[0] * scale, pattern.tileSize[1] * scale]
+        // ];
+        //console.log('draw', info.x, info.y, roughMode, rectToBeDrawn)
+
+        let sx = pattern.tileSize[0]*scale;
+        let sy = pattern.tileSize[1]*scale;
+
+        // Decide which buffer to draw this tile on. The tiles closer to the center are drawn
+        // on the inner buffers, in larger scale, so we can zoom in better quality.
+        let bufferToDraw: any = buffers[0][1];
+        let zoomToUse: number = buffers[0][0];
+        for (const [z, b] of buffers) {
+          const horzMargin = (fullWidth - fullWidth / z) / 2;
+          const vertMargin = (fullHeight - fullHeight / z) / 2;
+
+          if (
+              (x > horzMargin && y > vertMargin) &&
+              (x + sx < fullWidth-horzMargin && y + sy < fullHeight-vertMargin)
+          ) {
+            bufferToDraw = b;
+            zoomToUse = z;
+          }
+        }
+
+        if (!bufferToDraw) {
+          return;
+        }
+
+        scale = scale * zoomToUse;
+        x = (x - (fullWidth - fullWidth / zoomToUse) / 2) * zoomToUse;
+        y = (y - (fullHeight - fullHeight / zoomToUse) / 2) * zoomToUse;
+
+        // The fast path is an experimental, unfinished logic that draws tiles to a buffer once, and
+        // then flips it for each repeat; the downside is that we lose uniqueness when rough mode.
+        let useFastPath = false;
+
+        if (!useFastPath) {
+          renderTile({
+            pattern, buffer: bufferToDraw, x, y, scale, config, cache, info, p5, fillPattern
+          });
+          return;
+        }
+
+        // TODO: Needs special handling for pattern across tiles + randomness in fill angle + roughness
+        else {
+          if (!cachedTile) {
+            cachedTile = p5.createGraphics(sx*2, sy*2); // *2 so it will also draw any thing "outside" // XXX what about the other "direction" mode?
+            renderTile({
+              pattern, buffer: cachedTile, x: 0, y: 0, scale, config, cache, info, p5, fillPattern
+            });
+          }
+
+          bufferToDraw.image(cachedTile, x, y);
+        }
+      });
+
+  return fillPatternOpts;
 }
 
 
-export function polygon(p5, points: SimpleGroup) {
-  p5.beginShape();
-  points.forEach((point, idx) => {
-    p5.vertex(point[0], point[1])
-  })
-  p5.endShape(p5.CLOSE);
+function drawOverlay(buffer, config: Config, pattern: Pattern, fillPatternOpts: FillPatternOpts) {
+  buffer.push();
+  buffer.strokeWeight(0.8);
+  buffer.stroke(config.colors.overlay);
+  buffer.noFill();
+  buffer.drawingContext.lineDashOffset = 4 * 3;
+  buffer.drawingContext.setLineDash([1, 2]);
+
+  runTesselationLoop(
+      {
+        width: buffer.width,
+        height: buffer.height,
+        desiredNumber: (config.bufferedNumber ?? 11),
+        pattern: pattern,
+        fillPatternOpts
+      }, (x, y, scale, info) => {
+        buffer.push();
+        buffer.translate(x, y);
+        buffer.scale(scale);
+        pattern.tileEdges?.forEach(tileEdge => {
+          buffer.line(...tileEdge[0], ...tileEdge[1])
+        })
+        buffer.pop();
+      });
+  buffer.pop();
 }
+
+
+// A multiplication factor causing the buffer to be larger (more pixels) than what we
+// actually need to display the fully zoomed out pattern; as a result, when zooming in
+// the quality will be a bit better.
+// 1.2 appears to be a nice improvement, without enlarging the buffer too much.
+const OVERSCALE = 2.2;
 
 
 export class P5Renderer {
@@ -269,72 +322,188 @@ export class P5Renderer {
   config: Config;
   pattern: Pattern;
   showInfo: boolean = false;
+  seed: number = 0;
+  buffers: [number, any][];
+  overlayBuffer: any;
+  animationActive: boolean = false;
+  currentZoom = 1;
+  targetZoom = 1;
+  startZoomMillis: number;
+  startZoomValue: number;
+  size: {width: number, height: number};
+  fillPatternOpts: any;
 
-  constructor(config: Config, pattern: Pattern, parent?: any) {
+  constructor(
+    config: Config,
+    pattern: Pattern,
+    opts?: {
+      parent?: any,
+      seed?: number,
+      size?: {width: number, height: number},
+      noAutoInit?: boolean
+    }
+  ) {
     this.config = config;
     this.pattern = pattern;
+    this.seed = opts?.seed;
+    const size = this.size = opts?.size || {width: 650, height: 500};
 
     let sketch = (p) => {
       this.p5 = p;
       p.disableFriendlyErrors = true;
 
       p.setup = () => {
-        const c = p.createCanvas(650*2, 500*2);
-        if (parent) {
-          c.parent(parent);
+        const c = p.createCanvas(size.width, size.height);
+        if (opts?.parent) {
+          c.parent(opts.parent);
         }
 
-        //this.draw();
+        // debug('[setup] init')
+        if (!opts.noAutoInit) {
+          this.init();
+        }
       };
+
+      p.draw = () => {
+        if (this.animationActive) {
+          this.draw();
+          this.runAnimationLoop();
+        }
+      }
     };
 
     // @ts-ignore
-    this.p5 = new p5(sketch);
+    this.p5 = new window.p5(sketch);
   }
 
   cache: any = {};
 
-  setupInteractiveHandlers()  {
-    const handleInfoKey = (e) => {
+  setupInteractiveHandlers(root?: any)  {
+    root = root || window;
+
+    const maxZoom = 5;
+    const minZoom = 1;
+
+    const handleKeyPress = (e) => {
       if (e.key == 'i') {
         this.showInfo = !this.showInfo;
         this.config.drawTiles = !this.config.drawTiles;
         this.draw();
       }
     };
-    window.addEventListener('keypress', handleInfoKey);
+    const handleKeyDown = (e) => {
+      if (e.keyCode == 38) {  // arrow up
+        e.preventDefault();
+        this.zoomTo(Math.min(maxZoom, this.targetZoom + 0.1));
+        this.draw();
+      }
+      if (e.keyCode == 40) {  // arrow down
+        e.preventDefault();
+        this.zoomTo(Math.max(minZoom, this.targetZoom - 0.1));
+        this.draw();
+      }
+    };
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const newZoomLevel = this.targetZoom - e.deltaY/1000;
+      this.zoomTo(Math.min(maxZoom, Math.max(minZoom, newZoomLevel)));
+      this.draw();
+    };
+    root.addEventListener('keypress', handleKeyPress);
+    root.addEventListener('keydown', handleKeyDown);
+    root.addEventListener('wheel', handleWheel, {passive: false});
     return () => {
-      window.removeEventListener('keypress', handleInfoKey);
+      root.removeEventListener('keypress', handleKeyPress);
+      root.removeEventListener('keydown', handleKeyDown);
+      root.removeEventListener('wheel', handleWheel);
     }
   }
 
-  draw() {
-    initRandomizer(9);
-    const {p5, config} = this;
+  zoomTo(newZoom) {
+    this.targetZoom = newZoom;
+    if (!this.animationActive) {
+      this.startZoomMillis = this.p5.millis();
+      this.startZoomValue = this.currentZoom;
+    }
+    this.runAnimationLoop();
+  }
 
+  runAnimationLoop() {
+    if (this.animationActive) {
+      const animProgress = Math.min(1, (this.p5.millis() - this.startZoomMillis) / (0.3 * 1000));
+      this.currentZoom = this.startZoomValue + (this.targetZoom - this.startZoomValue) * animProgress;
+    }
+
+    this.animationActive = this.targetZoom != this.currentZoom;
+  }
+
+    init() {
+    const {p5, pattern, config, cache} = this;
+
+    // We use randomness both during generating the config + when
+    // drawing; This allows restoring the random state to what it
+    // should be post-config creation.
+    if (this.seed) {
+      initRandomizer(this.seed);
+    }
+
+    // Set an initial zoom based on desiredNumber
+    this.currentZoom = this.targetZoom = ((config.bufferedNumber ?? 11) / config.desiredNumber);
+
+    // Additional buffers for zoomed-in versions ensure a higher quality rendering for the zoom,
+    // as we can replace a scaled version with a more crisp one. This is disabled as there are
+    // still some bugs; in addition, the scaled up version is not that bad.
+    // Render artifacts that can sometimes appear when scaling down a large buffer too much are
+    // also not entirely solved by this, as the inner zoom buffers still need to be scaled down;
+    // the buffers are all combined to render the zoom out version. The alternative would be to
+    // draw the inner times multiple times on multiple buffers, which would make drawing even slower.
+    this.buffers = [
+      [1, this.p5.createGraphics(this.size.width * OVERSCALE, this.size.height * OVERSCALE)],   // 1x zoom
+      //[2, this.p5.createGraphics(this.size.width * d, this.size.height * d)],   // 2x zoom
+      // [3, this.p5.createGraphics(this.size.width * d, this.size.height * d)],   // 3x zoom
+    ]
+    this.fillPatternOpts = drawPattern(this.buffers, {pattern, config, cache, p5});
+
+    //if (window.DEBUG) { debug("[draw on buffer] done"); }
+
+    this.overlayBuffer = this.p5.createGraphics(this.size.width * OVERSCALE, this.size.height * OVERSCALE);
+    drawOverlay(this.overlayBuffer, config, pattern, this.fillPatternOpts);
+
+    //if (window.DEBUG) { debug("[overlay on buffer] done"); }
+
+    // Do the initial draw
+    this.draw();
+    //if (window.DEBUG) { debug("[initial draw] done"); }
+  }
+
+  draw() {
+    const {p5, config, buffers} = this;
+
+    // The background
     p5.background(config.colors.background);
 
-    if (config.rough?.mode == 'split') {
-      // this.clipTriangle(true, (clipArea) => this.drawPattern('off', clipArea));
-      // this.clipTriangle(false, (clipArea) => this.drawPattern('on', clipArea));
-      // if (config.showSplitLine) {
-      //   p5.drawingContext.save();
-      //   p5.drawingContext.shadowOffsetX = -6;
-      //   p5.drawingContext.shadowOffsetY = -6;
-      //   p5.drawingContext.shadowColor = "#000000";
-      //   p5.drawingContext.shadowBlur = 12;
-      //
-      //   p5.strokeWeight(1);
-      //   //p5.stroke('gray');
-      //   p5.stroke('#f5f2e3');
-      //   p5.line(0, p5.height, p5.width, 0)
-      //   p5.drawingContext.restore();
-      // }
-    }
-    else {
-      this.drawPattern(config.rough.mode);
+    const blip = (buffer, extraZoom?: number) => {
+      p5.push();
+      // scale from center
+      p5.translate(p5.width / 2, p5.height/2);
+      p5.scale(this.currentZoom / (extraZoom ?? 1) / OVERSCALE);
+      p5.translate(-buffer.width / 2, -buffer.height / 2);
+
+      // XXX it might be possible to scale it here for performance?
+      p5.image(buffer, 0, 0);
+      p5.pop();
     }
 
+    for (const [z, b] of this.buffers) {
+      blip(b, z);
+    }
+
+    // The tiling
+    if (config.drawTiles) {
+      blip(this.overlayBuffer, 1);
+    }
+
+    // The frame
     const frameWidth = this.drawFrame();
 
     if (this.showInfo && this.pattern.label) {
@@ -348,7 +517,7 @@ export class P5Renderer {
 
       const firstlineBottom = p5.height - rowHeight * 3 + fontSize * 0.8;
       const secondLineBottom = p5.height - rowHeight * 2 + fontSize;
-      const leftDistance = this.config.frame == 'full' ? 65 : 15;
+      const leftDistance = this.config.frame == 'full' ? frameWidth : 15;
       const neededWidth = Math.max(p5.textWidth(this.pattern.label?.title), p5.textWidth(this.pattern.label?.location));
 
       if (this.config.frame == 'none') {
@@ -366,88 +535,17 @@ export class P5Renderer {
     }
   }
 
-  // clipTriangle(top: boolean, f: any) {
-  //   const {p5} = this;
-  //
-  //   let poly;
-  //
-  //   p5.drawingContext.save();
-  //   p5.drawingContext.beginPath();
-  //   if (top) {
-  //     p5.drawingContext.moveTo(0, 0);
-  //     p5.drawingContext.lineTo(p5.width, 0);
-  //     p5.drawingContext.lineTo(0, p5.height);
-  //     poly = [[0, 0], [p5.width, 0], [0, p5.height]];
-  //   } else {
-  //     p5.drawingContext.moveTo(p5.width, 0);
-  //     p5.drawingContext.lineTo(p5.width, p5.height);
-  //     p5.drawingContext.lineTo(0, p5.height);
-  //     poly = [[p5.width, 0], [p5.width, p5.height], [0, p5.height]];
-  //   }
-  //   p5.drawingContext.clip();
-  //   f(poly);
-  //   p5.drawingContext.restore();
-  // }
-
-  drawPattern(roughMode: RoughMode, clipArea?: SimpleGroup) {
-    const {p5, config, pattern, cache} = this;
-
-    p5.background(config.colors.background);
-
-    runTesselationLoop(
-        {
-          width: p5.width,
-          height: p5.height,
-          desiredNumber: config.desiredNumber,
-          pattern
-        }, (x, y, scale, info) => {
-          const c = {
-            ...config,
-            rough: {
-              ...config.rough,
-              mode: roughMode,
-            }
-          }
-
-          const rectToBeDrawn: SimpleGroup = [
-              [x, y].map(x => Math.max(x, 0)) as SimplePoint,
-              [pattern.tileSize[0] * scale, pattern.tileSize[1] * scale]
-          ];
-          if (clipArea && !polygonIntersectsPoints(
-              clipArea,
-              pointsOfRect(rectToBeDrawn)))
-          {
-            //console.log('skip', info.x, info.y, roughMode, rectToBeDrawn, clipArea)
-
-            // p5.push();
-            // // p5.translate(x, y);
-            // // p5.scale(scale);
-            //
-            // p5.stroke("red");
-            // p5.strokeWeight(3);
-            // p5.fill("green");
-            // p5.rect(...rectToBeDrawn[0], ...rectToBeDrawn[1])
-            // p5.pop();
-            return;
-          }
-
-          //console.log('draw', info.x, info.y, roughMode, rectToBeDrawn)
-          renderWithP5(pattern, p5, x, y, scale, c, cache, info);
-        });
-  }
-
   drawFrame() {
     const {p5, config} = this;
 
     p5.noStroke();
     p5.fill(config.colors.background);
 
-    const frameWidth = 0.05;
-    const paddingPct = config.animate ? 0.5 - p5.millis() / 4000 * (0.5 - frameWidth) : frameWidth;
+    const paddingPct = 0.05;
 
     const h = Math.max(0, paddingPct * p5.height);
     const w = Math.max(0, paddingPct * p5.width);
-    const s = Math.max(h, w);
+    const s = Math.min(h, w);
 
     if (config.frame != 'none') {
       p5.rect(0, 0, p5.width, s);

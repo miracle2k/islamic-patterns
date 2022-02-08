@@ -1,6 +1,6 @@
 // Make a random line config
-import {Config, FillPatterns, LineConfig, TemplateNames} from "./types";
-import {rand, randint, random, randpick} from "./utils/random";
+import {Config, FillPatterns, LineConfig} from "./types";
+import {percpick, rand, randint, random} from "./utils/random";
 import {ColorSchemes, getRandomPattern, LineStyles} from "./makeConfig";
 
 
@@ -73,9 +73,7 @@ export function makeRandomConfig(): Config {
   }
 
   return {
-    animate: false,
-
-    frame: randpick([0.12, 'letterbox', 0.8, 'none', 'full']),
+    frame: percpick([0.12, 'letterbox', 0.8, 'none', 0.1, 'full']),
 
     desiredNumber: random(1, 8), // 8 is a good max, 2 is a good value (for a 500x500)
     colors: Object.values(ColorSchemes)[randint(0, Object.values(ColorSchemes).length - 1)],
@@ -87,8 +85,6 @@ export function makeRandomConfig(): Config {
 
     drawTiles: false,
 
-    // TODO: Vary the fills, or leave some empty.
-    // TODO: Either fix angle + patterns, or randomize them for each!
     fills: [
       {
         patternKind: FillPatterns[randint(0, FillPatterns.length - 1)],

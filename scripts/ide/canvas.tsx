@@ -8,7 +8,8 @@ import Controls from "./controls";
 export type CanvasDef = {
   config: Config,
   idx: number,
-  remoteId?: number
+  remoteId?: number,
+  seed?: number
 };
 
 
@@ -34,6 +35,7 @@ export function Canvas(props: {
    }}>
      <CanvasRaw
        config={config}
+       seed={props.def.seed}
        onClick={props.onClick}
        style={{
          flex: 1
@@ -52,6 +54,7 @@ export function Canvas(props: {
 
 export function CanvasRaw(props: {
   config: Config,
+  seed?: number,
   onClick?: any,
   style?: any,
   interactive?: boolean
@@ -79,7 +82,16 @@ export function CanvasRaw(props: {
       root.current.innerHTML = "";
     }
 
-    setP5(new P5Renderer(config, pattern, root.current));
+    let r = new P5Renderer(config, pattern, {
+      parent: root.current,
+      seed: props.seed,
+      size: {
+        width: 650 * 2,
+        height: 500 * 2
+      },
+      noAutoInit: true
+    });
+    setP5(r);
     initialRenderDone.current = true;
   }, []);
 
@@ -88,7 +100,7 @@ export function CanvasRaw(props: {
       return;
     }
     if (props.interactive) {
-      return p5.setupInteractiveHandlers();
+      return p5.setupInteractiveHandlers(root.current);
     }
   }, [props.interactive, p5])
 
@@ -97,12 +109,15 @@ export function CanvasRaw(props: {
   useEffect(() => {
     if (!p5 || !config) { return; }
     if (!initialRenderDone.current) { return; }
+
+    // If the config changes, then re-init
     p5.config = config;
     p5.pattern = pattern;
     window.clearTimeout(scheduledRedraw.current);
     scheduledRedraw.current = window.setTimeout(() => {
-      p5.draw();
-      console.log('draw done')
+      console.log('reinit begin, seed=', props.seed)
+      p5.init();
+      console.log('reinit done, seed=', props.seed)
     }, 200);
   }, [config, pattern, p5])
 

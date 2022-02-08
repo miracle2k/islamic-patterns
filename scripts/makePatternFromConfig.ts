@@ -38,6 +38,15 @@ export function makePatternFromConfig(config: PatternConfig): Pattern {
     pattern = generatePattern(template, angle, config.mode);
   }
 
+  // Debug: check for NaN values, they cause a lot of trouble
+  // pattern.shapes.forEach(shape => {
+  //   shape.forEach(point => {
+  //     if (Number.isNaN(point[0]) || Number.isNaN(point[1])) {
+  //       throw new Error("shape as a NaN value!")
+  //     }
+  //   })
+  // })
+
   if (config.expandedStrokeWidth) {
     // Generate and attach the expanded linesq
     pattern.expandedLines = pattern.lines.map((line, idx) => {
@@ -155,9 +164,9 @@ export function makePatternFromConfig(config: PatternConfig): Pattern {
       let toplines = interlacingConfig.flatMap(c => c.slice(0, 1));
 
       for (let idx=0; idx<pattern.lines.length; idx++) {
-        if (toplines.indexOf(idx) > -1) {
-          continue;
-        }
+        // if (toplines.indexOf(idx) > -1) {
+        //   continue;
+        // }
         pattern.expandedLines[idx][1] = lineInterpolate([pattern.expandedLines[idx][0], pattern.expandedLines[idx][2]], 0.5);
         pattern.expandedLines[idx][4] = lineInterpolate([pattern.expandedLines[idx][3], pattern.expandedLines[idx][5]], 0.5);
       }

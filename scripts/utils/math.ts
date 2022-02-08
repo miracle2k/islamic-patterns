@@ -146,14 +146,6 @@ export function magnitudeSq(a: SimplePoint) {
   return dotProduct(a, a);
 }
 
-
-// TODO: Is this a dup - same as magnitude?
-export function lineLength(line: SimpleLine): number {
-  const p1 = line[0];
-  const p2 = line[1];
-  return Math.sqrt(Math.pow(p1[0] - p2[0], 2) + Math.pow(p1[1] - p2[1], 2));
-}
-
 export function dotProduct(a: number[], b: number[]) {
   let d = 0;
   for (let i = 0, len = a.length; i < len; i++) {
@@ -234,13 +226,6 @@ export function pointIsLess(pt1: SimplePoint, pt2: SimplePoint) {
     return true;
   }
   return false;
-}
-
-export function pointConvexSum(point: SimplePoint, other: SimplePoint, t: number): SimplePoint {
-  return [
-    (1 - t) * point[0] + t * other[0],
-    (1 - t) * point[1] + t * other[1]
-  ];
 }
 
 export function pointSet(pt: SimplePoint, newValues: SimplePoint) {

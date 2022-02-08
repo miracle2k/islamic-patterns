@@ -3,7 +3,13 @@
  */
 
 import {SimpleLine, SimplePoint} from "../types";
-import {lineLength} from "../utils/math";
+import {
+  clone,
+  cloneGroup, lineMagnitude,
+  perpendicularFromPoint,
+  vecAdd,
+  vecMultiply
+} from "../utils/math";
 import {rand, random} from "../utils/random";
 
 export enum OpType {
@@ -78,7 +84,7 @@ export function dotsOnLines(lines: SimpleLine[], o: {
 
   const ro = gap / 4;
   for (const line of lines) {
-    const length = lineLength(line);
+    const length = lineMagnitude(line);
     const dl = length / gap;
     const count = Math.ceil(dl) - 1;
     const _offset = length - (count * gap);
@@ -231,6 +237,48 @@ export function rotatePoints(points: SimplePoint[], center: SimplePoint, degrees
     });
   }
   return points;
+}
+
+
+export function mirrorHexagonEdge(shape: SimplePoint[], rotationPoint: SimplePoint): SimplePoint[] {
+  return [
+    ...shape,
+    ...rotatePoints(cloneGroup(shape.slice(1)), rotationPoint, -120),
+    ...rotatePoints(cloneGroup(shape.slice(1)), rotationPoint, -240),
+  ]
+}
+
+// Give shape points from the right edge to the bottom edge.
+export function mirrorShapeAtBottomRightCorner(shape: SimplePoint[], corner: SimplePoint=[100, 100]): SimplePoint[] {
+  return [
+    ...shape,
+    ...rotatePoints(cloneGroup(shape.slice(1)), corner, -90),
+    ...rotatePoints(cloneGroup(shape.slice(1)), corner, -180),
+    ...rotatePoints(cloneGroup(shape.slice(1)), corner, -270),
+  ]
+}
+
+export function reflectAtRightEdge(shape: SimplePoint[]): SimplePoint[] {
+  return reflectAtEdge(shape, [[100, 0], [100, 100]]);
+}
+
+export function reflectAtBottomEdge(shape: SimplePoint[]): SimplePoint[] {
+  return reflectAtEdge(shape, [[0, 100], [100, 100]]);
+}
+
+export function reflectAtEdge(shape: SimplePoint[], edge: SimpleLine): SimplePoint[] {
+  const result = [...shape];
+
+  // Because we expect the first and last point to be on the line, we do not include them
+  for (let i=shape.length-2; i>0; i--) {
+    const point = shape[i];
+
+    const vector = perpendicularFromPoint(edge, point);
+    const final = vecAdd(clone(point), vecMultiply(vector, 2));
+    result.push(final);
+  }
+
+  return result;
 }
 
 export function rotateLines(lines: SimpleLine[], center: SimplePoint, degrees: number): void {

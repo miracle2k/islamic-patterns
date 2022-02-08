@@ -4,6 +4,7 @@ import {useEffect, useRef} from "react";
 import {makeConfig} from "../makeConfig";
 import {Canvas, CanvasRaw} from "./canvas";
 import { disableBodyScroll, enableBodyScroll } from 'body-scroll-lock';
+import {randomSeed} from "../utils/random";
 
 
 export function App() {
@@ -16,7 +17,7 @@ export function App() {
   const addSome = useCallback((howMany?: number) => {
     let result: any = [];
     for (let i = 0; i < (howMany ?? 20); i++) {
-      const config = makeConfig();
+      const config = makeConfig(randomSeed());
       console.log(config.colors.foreground)
       result.push(config)
     }
@@ -41,7 +42,7 @@ export function App() {
       <div className={"controls"}>
         Controls: Press i or space. &nbsp;
         <a href={"#"}  onClick={async (e) => {
-
+          await navigator.clipboard.writeText(JSON.stringify(configs[single], null, 4));
         }}>Copy Config</a> &bull;&nbsp;
         <a href={"#"}  onClick={(e) => {
           e.preventDefault();

@@ -128,7 +128,7 @@ export function findConnectingLinesWithTiling(line: SimpleLine, allLines: Simple
  *
  * https://math.stackexchange.com/questions/1849784/calculate-miter-points-of-stroked-vectors-in-cartesian-plane
  */
-function getJoin(
+export function getJoin(
   sharedPoint: SimplePoint,
   otherPointA: SimplePoint,
   otherPointB: SimplePoint,

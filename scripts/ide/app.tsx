@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {makeConfig} from "../makeConfig";
 import ReactDOM from 'react-dom';
 import {Canvas, CanvasDef} from "./canvas";
+import {getSeed, randomSeed} from "../utils/random";
 
 
 const storage = window.localStorage['genpattern-configs'];
@@ -11,10 +12,9 @@ export function App() {
   const [canvases, setCanvases] = useState<CanvasDef[]>([]);
   const maxIdx = useRef(10);
 
-  // TODO: angle = 0.9 causese infinite density to missfunction
   const makeNewCanvas = () => {
-    const config =  makeConfig();
-    const newCanvases = [{config, idx: maxIdx.current}, ...canvases];
+    const config =  makeConfig(randomSeed());
+    const newCanvases = [{config, idx: maxIdx.current, seed: getSeed()}, ...canvases];
     maxIdx.current += 1;
     while (newCanvases.length > 5) {
       newCanvases.splice(newCanvases.length-1, 1)

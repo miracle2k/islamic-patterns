@@ -7,6 +7,15 @@ export type SimpleGroup = SimplePoint[];
 export type TesselationInfo = {x: number, y: number};
 export type TilingMode = 'square'|'hex'|'hex2';
 
+export type FillPatternStructure = (number[]|true)[][];
+export type FillPatternOpts = {shiftX?: number, shiftY?: number};
+export type FillPatternDefinition = FillPatternStructure|[FillPatternStructure, FillPatternOpts]
+
+
+export function isFillPatternDefinition(d: FillPatternDefinition): d is FillPatternStructure {
+  return !(d.length == 2 && typeof d[1] == 'object' && !Array.isArray(d[1]));
+
+}
 
 export type Pattern = {
   label?: {
@@ -28,9 +37,8 @@ export type Pattern = {
   interlacingConfig?: [number, number, number, number, number, number, number?, boolean?][],
 
   shapes: SimpleGroup[],
-  shapeSets?: number[][],
-  edgeSet?: any,
   externalShapes?: SimpleGroup[]
+  fillPatterns?: FillPatternDefinition[]
 }
 
 enum InterlacingMode {
@@ -47,7 +55,7 @@ export type PatternConfig = {
   angle: number,
   expandedStrokeWidth?: number,
   interlacing?: InterlacingMode,
-  shapeSet?: number,
+  fillPatternIdx?: number,
 }
 
 export type ColorScheme = {
@@ -72,19 +80,20 @@ export type LineConfig = {
   noEndDots?: boolean
 }
 
-//  'hearts', 'waves', 'crosses', 'crossHatch'
-export const FillPatterns = ['dots', 'lines', 'waves', 'crosses', 'hearts', 'infinite', 'solid', 'none'] as const;
+export const FillPatterns = ['dots', 'lines', 'dashed-lines', 'waves', 'crosses', 'infinite', 'solid', 'none'] as const;
 export type FillPattern = typeof FillPatterns[number];
 
 
 export type FillConfig = {
   patternKind?: FillPattern,
-  patternAngle?: number,
+  patternAngle?: number|'random',
   patternScale?: number,
   patternGap?: number,
+  patternIsTiny?: boolean,
 
   infiniteStrokeWeight?: number,
   infiniteDensity?: number,
+  infiniteAlignment?: number,
   roughSolidDensity?: number,
   infiniteStrokeWeightMode?: "same"|"dropoff",
 
@@ -94,9 +103,7 @@ export type FillConfig = {
 export type FrameType = 'letterbox'|'full'|'none';
 
 
-export type FillLogicOption = 'random'|'rows'|'cols'|'diag';
-
-export type RoughMode = 'on'|'off'|'split';
+export type RoughMode = 'on'|'off';
 export type RoughConfig = {
   mode?: RoughMode,
   roughness?: number,
@@ -106,7 +113,6 @@ export type RoughConfig = {
 
 
 export type Config = {
-  animate?: boolean,
   rough?: RoughConfig,
 
   frame: FrameType,
@@ -114,16 +120,15 @@ export type Config = {
   // Which pattern to use
   pattern: PatternConfig,
 
-  // How often to repeat the pattern.
+  // How often to repeat the pattern in the  standard view
+  bufferedNumber: number,
   desiredNumber: number,
   // the color scheme to use
   colors: ColorScheme,
   // Draw underlying tiles?
   drawTiles?: boolean,
-  showSplitLine?: boolean,
 
   fills: FillConfig[],
-  fillLogic?: FillLogicOption,
   expandedLineFill?: FillConfig,
 
   centerLine?: LineConfig,

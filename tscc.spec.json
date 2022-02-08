@@ -1,0 +1,9 @@
+{
+    "modules": {
+      "index": "scripts/artblocksEntry.ts"
+    },
+    "compilerFlags": {
+       "language_out": "ECMASCRIPT5"
+    },
+    "prefix": "dist/"
+}

@@ -53,13 +53,38 @@ export function makeCapellaPalatina(angle?: number): Pattern {
       [0, 8, 0, -1, 3, 5],
       [4, 12, 1, 0, 3, 5]
     ],
-    // externalShapes: [
-    //   [
-    //       ...[i, j, k, l, m],
-    //     ...rotatePoints(cloneGroup([i, j, k, l, m]), [100, 100], 90),
-    //     ...rotatePoints(cloneGroup([i, j, k, l, m]), [100, 100], 180),
-    //     ...rotatePoints(cloneGroup([i, j, k, l, m]), [100, 100], 270),
-    //   ]
-    // ]
+    externalShapes: [
+      [
+        ...[i, j, k, l, m],
+        ...rotatePoints(cloneGroup([j, k, l, m]), [100, 100], -90),
+        ...rotatePoints(cloneGroup([j, k, l, m]), [100, 100], -180),
+        ...rotatePoints(cloneGroup([j, k, l, m]), [100, 100], -270),
+      ]
+    ],
+    fillPatterns: [
+      [[
+        [[0, 1], [0],],
+        [[0], [0, 1],],
+      ], {shiftX: 0.5, shiftY: 0.5}],
+      [[
+        [[1], [0],],
+        [[0], [1],],
+      ], {shiftX: -0.5}],
+      [[
+        [[0, 1], [],],
+        [[], [0, 1],],
+      ], {shiftY: 0.5}],
+      [[
+        [[1], [0, 1], []],
+        [[0, 1], [1], [0]],
+        [[], [0], [1]],
+      ], {shiftY: 0.5, shiftX: -0}],
+      // XXX remove this dupplicate
+      [[
+        [[1], [0, 1], []],
+        [[0, 1], [1], [0]],
+        [[], [0], [1]],
+      ], {shiftY: 0.5, shiftX: 0}],
+    ]
   }
 }

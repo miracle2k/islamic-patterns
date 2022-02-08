@@ -2,6 +2,7 @@ import {Pattern, SimpleGroup, SimpleLine, SimplePoint} from "../types";
 import {TileEdges100Square} from "./utils";
 import {intersectLine, moveBy, vecAdd} from "../utils/math";
 import {mapRandom, Random} from "../utils/random";
+import {reflectAtBottomEdge, reflectAtRightEdge} from "../rough/hachure";
 
 
 export function makeKharraqan(angle: number): Pattern {
@@ -15,6 +16,7 @@ export function makeKharraqan(angle: number): Pattern {
   const pp: SimplePoint = [25, 60.35533905029297]
   const mm: SimplePoint = [25, 39.64466094970703]
 
+  const Z: SimplePoint = [50, 50];
   const A: SimplePoint = [100, 50]
   const B: SimplePoint = [50, 100]
   const C: SimplePoint = [0, 50]
@@ -28,26 +30,27 @@ export function makeKharraqan(angle: number): Pattern {
   const b3: SimplePoint = [89.64466094970703, 75]
   const b4: SimplePoint = [10.355339050292969, 75]
 
-  const random = new Random(angle ?? 0);
+  const random = new Random((angle ?? 1) * 9999999);
 
-  // the center cross
+  // the center cross: we stretch it horizontally
   let mod = mapRandom(random.next(), -6, 10);
   vecAdd(o, [mod, 0])
   vecAdd(p, [-mod, 0])
   vecAdd(m, [-mod, 0])
   vecAdd(n, [mod, 0])
 
-  // the left/right sided triangles
-  let mod2 = mapRandom(random.next(), -10, 6)
+  // the left/right sided triangles: we change the angle
+  let mod2 = mapRandom(random.next(), -10, 6);
   vecAdd(nn, [0, mod2])
   vecAdd(oo, [0, -mod2])
   vecAdd(mm, [0, mod2])
   vecAdd(pp, [0, -mod2])
 
-  let mod3 = mapRandom(random.next(), -10, 10);
+  // Where the lines meet in each corner
+  let mod3 = mapRandom(random.next(), mod > 5 ? 0 : -8, 10);
+
   const vertTopLeft: SimpleLine = [r, mm];
   moveBy(vertTopLeft, -mod3, 0);
-
   const horzTopLeft: SimpleLine = [b2, m];
   moveBy(horzTopLeft, 0, -mod3);
 
@@ -78,8 +81,8 @@ export function makeKharraqan(angle: number): Pattern {
   const L12: SimpleLine = [r, e]
   const L28: SimpleLine = [mm, e]
 
-  const L4: SimpleLine = [[50, 50], m]
-  const L5: SimpleLine = [[50, 50], n]
+  const L4: SimpleLine = [Z, m]
+  const L5: SimpleLine = [Z, n]
   const L6: SimpleLine = [f, n]
   const L7: SimpleLine = [f, b1]
   const L8: SimpleLine = [[100, 0], b1]
@@ -93,8 +96,8 @@ export function makeKharraqan(angle: number): Pattern {
   const L17: SimpleLine = [g, b3]
   const L18: SimpleLine = [b3, [100, 100]]
   const L19: SimpleLine = [g, o]
-  const L20: SimpleLine = [o, [50, 50]]
-  const L21: SimpleLine = [p, [50, 50]]
+  const L20: SimpleLine = [o, Z]
+  const L21: SimpleLine = [p, Z]
   const L22: SimpleLine = [p, h]
   const L23: SimpleLine = [h, b4]
   const L24: SimpleLine = [b4, [0, 100]]
@@ -108,6 +111,7 @@ export function makeKharraqan(angle: number): Pattern {
   const L32: SimpleLine = [t, g]
 
   const lines: SimpleLine[] = [
+    //L6, L7, L10, L13
     L1, L2, L3, L4, L5, L6, L7,
     L8, L9, L10, L11,
     L12, L13, L14, L15, L16, L17, L18, L19, L20, L21,
@@ -115,10 +119,10 @@ export function makeKharraqan(angle: number): Pattern {
   ];
 
   const shapes: SimpleGroup[] = [
-    [r, D, s, f, n, [50, 50], m, e],
-    [C, mm, e, m, [50, 50], p, [25, 75], pp],
-    [B, u, [25, 75], p, [50, 50], o, g, t],
-    [A, oo, g, o, [50, 50], n, f, nn],
+    [r, D, s, f, n, Z, m, e],
+    [C, mm, e, m, Z, p, h, pp],
+    [B, u, h, p, Z, o, g, t],
+    [A, oo, g, o, Z, n, f, nn],
   ]
 
   return {
@@ -130,7 +134,6 @@ export function makeKharraqan(angle: number): Pattern {
     tileSize: [100, 100],
     tileEdges: TileEdges100Square,
     shapes,
-    shapeSets: [[0, 2], [1, 3]],
     lines,
     interlacingConfig: [
       [6, 5, 0, 0, 0, 2],
@@ -155,6 +158,34 @@ export function makeKharraqan(angle: number): Pattern {
 
       [31, 15, 0, 0, 3, 5, 0, false],
       [31, 15, 0, 0, 5, 3, 0, false],
+    ],
+    externalShapes: [
+      reflectAtRightEdge([A, oo, g, b3, [100, 100] ]),
+      reflectAtRightEdge([[100,0], b1, f, nn, A]),
+      reflectAtBottomEdge([[100,100], b3, g, t, B]),
+      reflectAtBottomEdge([B, u, h, b4, [0, 100]]),
+    ],
+    fillPatterns: [
+      [
+        [[0,2,6,7]],
+      ],
+      [
+        [[6,7]],
+      ],
+      [
+        [[4,5]],
+      ],
+      [
+        [[0,1,2,3]]
+      ],
+      [[
+        [[0,1,2,3,6,7],[1,3]],
+        [[0,2,4,5,6,7],[0,2,1,3,4,5]]
+      ], {shiftX: -0.5, shiftY: 1}],
+      [[
+        [[0,1,2,3,6,7],[0,2]],
+        [[0,1,2,3,4,5,6,7],[1,3,4,5]]
+      ], {shiftX: -0.5, shiftY: 0.5}],
     ]
   };
 }
